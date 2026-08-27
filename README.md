@@ -120,6 +120,7 @@ of:
 - `codex`
 - `grok`
 - `hermes`
+- `opencode`
 
 ## Scripts
 
@@ -140,7 +141,7 @@ number.
 | --- | --- |
 | `repo` | Repository name, resolved through `MAESTRO_GH_SEARCH` and cloned on demand |
 | `pr_number` | The PR number (numeric) |
-| `agent_type` | Optional. One of `claude`, `codex`, `grok`, `hermes`. Defaults to `${MAESTRO_DEFAULT_AGENT_TYPE:-claude}` |
+| `agent_type` | Optional. One of `claude`, `codex`, `grok`, `hermes`, `opencode`. Defaults to `${MAESTRO_DEFAULT_AGENT_TYPE:-claude}` |
 
 **Options:**
 
@@ -227,7 +228,7 @@ Maestro agent.
 | --- | --- |
 | `repo` | Any repository already cloned under `${MAESTRO_REPOS_DIR}` |
 | `worktree_name` | Free-form label for the worktree. Allowed characters: letters, digits, `.`, `_`, `-` |
-| `agent_type` | Optional. One of `claude`, `codex`, `grok`, `hermes`. Defaults to `${MAESTRO_DEFAULT_AGENT_TYPE:-claude}` |
+| `agent_type` | Optional. One of `claude`, `codex`, `grok`, `hermes`, `opencode`. Defaults to `${MAESTRO_DEFAULT_AGENT_TYPE:-claude}` |
 
 The finished worktree and agent share the name
 `<repo>-<worktree_name>-<agent_type>`.
@@ -288,8 +289,8 @@ finishes, then fires a desktop toast notification.
 Maestro reports an auto-run agent as idle between iterations, because each
 iteration runs as a detached, headless process rather than a tracked
 desktop session. This watcher follows that process directly instead, by
-agent ID (for `claude`) or by worktree directory (for `codex`, `grok`, and
-`hermes`). Because auto-run exits after every task and relaunches for the
+agent ID (for `claude`) or by worktree directory (for `codex`, `grok`,
+`hermes`, and `opencode`). Because auto-run exits after every task and relaunches for the
 next one, the watcher declares the run "done" only after the process has
 stayed gone for the full grace window with no new iteration starting.
 
@@ -306,7 +307,7 @@ stayed gone for the full grace window with no new iteration starting.
 | `agent_id` | The UUID of the Maestro agent to watch, for example from [`maestro_id.sh`](#maestro_idsh--agent-uuid-lookup) |
 | `grace_seconds` | How long the process must stay gone before the watcher declares "done". Default: `60` |
 | `poll_seconds` | Polling interval. Default: `5` |
-| `agent_type` | Optional agent type: `claude`, `codex`, `grok`, or `hermes`. Maestro usually reports this on its own; pass it only when that metadata is unavailable |
+| `agent_type` | Optional agent type: `claude`, `codex`, `grok`, `hermes`, or `opencode`. Maestro usually reports this on its own; pass it only when that metadata is unavailable |
 
 **Options:**
 

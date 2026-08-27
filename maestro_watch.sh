@@ -6,11 +6,11 @@
 # idle during an Auto Run, because each iteration runs as a *detached headless*
 # process, not a tracked desktop session. This watcher follows that process by
 # agent ID (claude runs as `claude --print`) or by worktree cwd (codex, grok,
-# and hermes run inside a unique worktree). Since Auto Run exits after every
+# hermes, and opencode run inside a unique worktree). Since Auto Run exits after every
 # task and relaunches for the next one, we only declare "fully done" once the
 # process has stayed gone for grace_seconds with no new iteration spawning.
 #
-# Supported agent types: claude (default), codex, grok, hermes.
+# Supported agent types: claude (default), codex, grok, hermes, opencode.
 #
 # Usage: maestro_watch.sh <agent_id> [grace_seconds] [poll_seconds] [agent_type] [start_timeout] [max_seconds] [autorun_dir] [worktree_dir]
 
@@ -26,7 +26,7 @@ Arguments:
     agent_id        The UUID of the Maestro agent to watch
     grace_seconds   How long the process must stay gone before "done" (default 60)
     poll_seconds    Polling interval (default 5)
-    agent_type      Maestro agent type: claude (default), codex, grok, or hermes.
+    agent_type      Maestro agent type: claude (default), codex, grok, hermes, or opencode.
                     Maestro usually resolves this; pass it only when the CLI
                     metadata is unavailable.
 
@@ -114,7 +114,7 @@ cli=(node "$maestro_cli")
 hist="$MAESTRO_USER_DATA/history/${agent}.json"
 
 # Resolve type + cwd from Maestro so completion detection works for every
-# supported agent type (claude, codex, grok, hermes). The optional fourth arg
+# supported agent type (claude, codex, grok, hermes, opencode). The optional fourth arg
 # is a fallback for older CLI output, not the source of truth.
 watch_started="$(date +%s)"
 agent_json=""
@@ -178,6 +178,15 @@ pids() {
             ps -Ao pid=,command= | awk -v cwd="$agent_cwd" '
                 index($0,"awk -v cwd=")==0 && index($0,"maestro_watch.sh")==0 &&
                 index($0,"codex") && index($0,"exec") && index($0,cwd) {print $1}'
+            ;;
+        opencode)
+            # Maestro launches: opencode run --format json ... in the worktree.
+            # OpenCode's session id is not the Maestro agent id, so cwd is the
+            # stable key, as with codex.
+            [[ -n "$agent_cwd" ]] || return 0
+            ps -Ao pid=,command= | awk -v cwd="$agent_cwd" '
+                index($0,"awk -v cwd=")==0 && index($0,"maestro_watch.sh")==0 &&
+                index($0,"opencode") && index($0,"run") && index($0,cwd) {print $1}'
             ;;
         grok|hermes)
             # grok and hermes run headless inside their unique worktree. The

@@ -5,7 +5,7 @@
 # Usage: maestro_wt.sh <repo> <worktree_name> [agent_type]
 #        maestro_wt.sh --delete [--force] <repo> <worktree_name> [agent_type]
 
-VALID_AGENT_TYPES=(claude codex grok hermes)
+VALID_AGENT_TYPES=(claude codex grok hermes opencode)
 
 # maestro_tool_type — Map an accepted agent type to the Maestro CLI's -t tool-type
 # spelling. Every accepted type is also a Maestro tool-type ID, except "claude",

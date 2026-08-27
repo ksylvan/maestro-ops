@@ -8,7 +8,7 @@
 # then layers in the PR-specific bits: playbook copy, PR-URL substitution,
 # `gh pr checkout`, and the auto-run launch.
 
-VALID_AGENT_TYPES=(claude codex grok hermes)
+VALID_AGENT_TYPES=(claude codex grok hermes opencode)
 
 script_dir="$(cd "$(dirname "$0")" && pwd)"
 MAESTRO_WT="${script_dir}/maestro_wt.sh"
