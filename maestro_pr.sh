@@ -8,12 +8,11 @@
 # then layers in the PR-specific bits: playbook copy, PR-URL substitution,
 # `gh pr checkout`, and the auto-run launch.
 
-VALID_AGENT_TYPES=(claude codex grok hermes opencode)
-
 script_dir="$(cd "$(dirname "$0")" && pwd)"
 MAESTRO_WT="${script_dir}/maestro_wt.sh"
 
 # Resolve maestro_cli (and MAESTRO_USER_DATA when appropriate); sources .env.
+# Also provides VALID_AGENT_TYPES, format_options, validate_agent_type.
 # shellcheck source=_maestro_env.sh
 source "${script_dir}/_maestro_env.sh"
 
@@ -21,20 +20,6 @@ source "${script_dir}/_maestro_env.sh"
 # MAESTRO_PLAYBOOKS_GH_REPO into MAESTRO_PLAYBOOKS_DIR if missing. See
 # ensure_playbooks below.
 PLAYBOOKS_SOURCE="${MAESTRO_PLAYBOOKS_DIR}/Development/Code-Review"
-
-format_options() {
-    local formatted=""
-    local option
-
-    for option in "$@"; do
-        if [[ -n "$formatted" ]]; then
-            formatted+=", "
-        fi
-        formatted+="$option"
-    done
-
-    printf '%s' "$formatted"
-}
 
 usage() {
     cat <<EOF
@@ -251,18 +236,7 @@ agent_type="${3:-${MAESTRO_DEFAULT_AGENT_TYPE:-claude}}"
 [[ "$pr_number" =~ ^[0-9]+$ ]] || die "PR number must be numeric, got '${pr_number}'"
 
 # Validate agent type up front so a typo doesn't waste a gh call
-agent_type_valid=false
-for valid_agent_type in "${VALID_AGENT_TYPES[@]}"; do
-    if [[ "$agent_type" == "$valid_agent_type" ]]; then
-        agent_type_valid=true
-        break
-    fi
-done
-
-if [[ "$agent_type_valid" != "true" ]]; then
-    valid_options=$(format_options "${VALID_AGENT_TYPES[@]}")
-    die "Invalid agent type '${agent_type}'. Valid options: ${valid_options}"
-fi
+validate_agent_type "$agent_type"
 
 # ---------- resolve repo (owner search + clone on demand) ----------
 

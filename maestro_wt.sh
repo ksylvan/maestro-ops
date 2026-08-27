@@ -5,8 +5,6 @@
 # Usage: maestro_wt.sh <repo> <worktree_name> [agent_type]
 #        maestro_wt.sh --delete [--force] <repo> <worktree_name> [agent_type]
 
-VALID_AGENT_TYPES=(claude codex grok hermes opencode)
-
 # maestro_tool_type — Map an accepted agent type to the Maestro CLI's -t tool-type
 # spelling. Every accepted type is also a Maestro tool-type ID, except "claude",
 # which the CLI spells "claude-code". This is the one place that mapping lives;
@@ -16,20 +14,6 @@ maestro_tool_type() {
         claude) echo "claude-code" ;;
         *)      echo "$1" ;;
     esac
-}
-
-format_options() {
-    local formatted=""
-    local option
-
-    for option in "$@"; do
-        if [[ -n "$formatted" ]]; then
-            formatted+=", "
-        fi
-        formatted+="$option"
-    done
-
-    printf '%s' "$formatted"
 }
 
 usage() {
@@ -203,18 +187,7 @@ fi
     || die "worktree_name must contain only letters, digits, '.', '_', or '-' (got '${wt_name}')"
 
 # Validate agent type
-agent_type_valid=false
-for valid_agent_type in "${VALID_AGENT_TYPES[@]}"; do
-    if [[ "$agent_type" == "$valid_agent_type" ]]; then
-        agent_type_valid=true
-        break
-    fi
-done
-
-if [[ "$agent_type_valid" != "true" ]]; then
-    valid_options=$(format_options "${VALID_AGENT_TYPES[@]}")
-    die "Invalid agent type '${agent_type}'. Valid options: ${valid_options}"
-fi
+validate_agent_type "$agent_type"
 
 # ---------- source helper functions ----------
 

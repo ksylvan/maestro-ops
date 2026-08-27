@@ -50,6 +50,33 @@ export MAESTRO_PLAYBOOKS_GH_REPO="${MAESTRO_PLAYBOOKS_GH_REPO:-RunMaestro/Maestr
 export MAESTRO_PLAYBOOKS_DIR="${MAESTRO_PLAYBOOKS_DIR:-${MAESTRO_REPOS_DIR}/Maestro-Playbooks}"
 export MAESTRO_DEFAULT_AGENT_TYPE="${MAESTRO_DEFAULT_AGENT_TYPE:-claude}"
 
+# Accepted Maestro agent types — single source of truth. Every script that
+# validates, normalizes, or documents an agent type reads this one list, so the
+# accepted set can never drift between scripts again.
+# shellcheck disable=SC2034  # consumed by the scripts that source this helper
+VALID_AGENT_TYPES=(claude codex grok hermes opencode)
+
+# format_options — Comma-join arguments for a help or error message.
+# Usage: format_options a b c  ->  "a, b, c"
+format_options() {
+    local formatted="" option
+    for option in "$@"; do
+        [[ -n "$formatted" ]] && formatted+=", "
+        formatted+="$option"
+    done
+    printf '%s' "$formatted"
+}
+
+# validate_agent_type — Die unless $1 is an accepted agent type.
+# Relies on the caller's die() (defined before this is ever called).
+validate_agent_type() {
+    local candidate="$1" valid
+    for valid in "${VALID_AGENT_TYPES[@]}"; do
+        [[ "$candidate" == "$valid" ]] && return 0
+    done
+    die "Invalid agent type '${candidate}'. Valid options: $(format_options "${VALID_AGENT_TYPES[@]}")"
+}
+
 # Path helper functions (pure string builders, no filesystem side effects).
 # These are safe to call multiple times and in any context.
 
