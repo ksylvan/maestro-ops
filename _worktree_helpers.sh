@@ -100,6 +100,28 @@ make_autorun_dirs() {
     done
 }
 
+# Remove the autorun directory that mirrors a worktree path, if it exists.
+# Prompts before removing it, unless force_remove is "--force".
+_maybe_remove_autorun_dir() {
+    local worktree_path="$1"
+    local force_remove="$2"
+
+    local autorun_dir="${worktree_path/worktrees\//worktrees/autorun/}"
+    if [[ -d "$autorun_dir" ]]; then
+        if [[ "$force_remove" != "--force" ]]; then
+            echo -n "Should we remove autorun directory: $autorun_dir? (y/n) [n] "
+            local answer
+            read -r answer
+            if [[ "$answer" != "y" ]]; then
+                echo "Skipping removal of autorun directory."
+                return 0
+            fi
+        fi
+        rm -rf "$autorun_dir"
+        echo "Removed autorun directory: $autorun_dir"
+    fi
+}
+
 # Remove a git worktree (and optionally its autorun directory).
 # Prompts before removing the autorun directory, unless --force is given.
 cleanup_work_tree_here() {
@@ -155,18 +177,5 @@ cleanup_work_tree_here() {
     echo "Current directory changed to top-level worktree: $top_worktree"
     git worktree list
 
-    local autorun_dir="${worktree_path/worktrees\//worktrees/autorun/}"
-    if [[ -d "$autorun_dir" ]]; then
-        if [[ "$force_remove" != "--force" ]]; then
-            echo -n "Should we remove autorun directory: $autorun_dir? (y/n) [n] "
-            local answer
-            read -r answer
-            if [[ "$answer" != "y" ]]; then
-                echo "Skipping removal of autorun directory."
-                return 0
-            fi
-        fi
-        rm -rf "$autorun_dir"
-        echo "Removed autorun directory: $autorun_dir"
-    fi
+    _maybe_remove_autorun_dir "$worktree_path" "$force_remove"
 }
