@@ -44,10 +44,21 @@ Examples:
 EOF
 }
 
-die() {
-    echo "Error: $*" >&2
-    exit 1
-}
+# ---------- resolve Maestro CLI ----------
+
+# maestro_dev_cli is a shell alias, which is NOT available inside scripts, so we
+# invoke the real binary directly. The shared helper resolves the CLI path and
+# sources any sibling .env. Honor the legacy MAESTRO_JS as an alias for
+# MAESTRO_CLI_JS so existing environments keep working. Sourced before argument
+# parsing because that parsing calls die(), which lives in _maestro_env.sh.
+: "${MAESTRO_CLI_JS:=${MAESTRO_JS:-}}"
+[[ -n "$MAESTRO_CLI_JS" ]] && export MAESTRO_CLI_JS
+
+_script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=_maestro_env.sh
+# die() lives in _maestro_env.sh, so it does not exist yet if the source fails.
+source "${_script_dir}/_maestro_env.sh" \
+    || { echo "Error: Cannot source _maestro_env.sh" >&2; exit 1; }
 
 # ---------- argument parsing ----------
 
@@ -91,19 +102,6 @@ fi
 if [[ "$status_only" == "true" ]]; then
     [[ "$status_idle_grace" =~ ^[0-9]+$ ]] || die "status idle grace must be numeric"
 fi
-
-# ---------- resolve Maestro CLI ----------
-
-# maestro_dev_cli is a shell alias, which is NOT available inside scripts, so we
-# invoke the real binary directly. The shared helper resolves the CLI path and
-# sources any sibling .env. Honor the legacy MAESTRO_JS as an alias for
-# MAESTRO_CLI_JS so existing environments keep working.
-: "${MAESTRO_CLI_JS:=${MAESTRO_JS:-}}"
-[[ -n "$MAESTRO_CLI_JS" ]] && export MAESTRO_CLI_JS
-
-_script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-# shellcheck source=_maestro_env.sh
-source "${_script_dir}/_maestro_env.sh" || die "Cannot source _maestro_env.sh"
 
 # This watcher reads the history file straight off disk, so it always needs a
 # user-data dir. When the installed app is used the helper leaves

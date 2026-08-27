@@ -54,16 +54,13 @@ Examples:
 EOF
 }
 
-die() {
-    echo "Error: $*" >&2
-    exit 1
-}
-
 # ---------- resolve Maestro CLI ----------
 
 _script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=_maestro_env.sh
-source "${_script_dir}/_maestro_env.sh" || die "Cannot source _maestro_env.sh"
+# die() lives in _maestro_env.sh, so it does not exist yet if the source fails.
+source "${_script_dir}/_maestro_env.sh" \
+    || { echo "Error: Cannot source _maestro_env.sh" >&2; exit 1; }
 
 # ---------- argument parsing ----------
 

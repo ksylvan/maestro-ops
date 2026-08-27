@@ -43,6 +43,15 @@ if [[ -f "${_maestro_env_dir}/.env" ]]; then
     source "${_maestro_env_dir}/.env"
 fi
 
+# die — Print an error to stderr and exit non-zero. Shared by every script that
+# sources this helper. Defined before any code here that could call it (e.g.
+# validate_agent_type). The source-guard lines in the callers use an inline
+# fallback, because die does not exist yet if this file fails to load.
+die() {
+    echo "Error: $*" >&2
+    exit 1
+}
+
 # Directory model defaults and configuration.
 export MAESTRO_REPOS_DIR="${MAESTRO_REPOS_DIR:-${HOME}/src}"
 export MAESTRO_GH_SEARCH="${MAESTRO_GH_SEARCH:-}"

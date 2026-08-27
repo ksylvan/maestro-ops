@@ -48,11 +48,6 @@ Examples:
 EOF
 }
 
-die() {
-    echo "Error: $*" >&2
-    exit 1
-}
-
 # resolve_repo — Find the repository owner on GitHub and make sure it is cloned.
 #
 # Usage: resolve_repo <repo>
