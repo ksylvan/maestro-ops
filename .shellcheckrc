@@ -1,0 +1,6 @@
+# ShellCheck configuration for the maestro_*.sh helper scripts.
+#
+# The scripts source sibling helpers (_maestro_env.sh, _worktree_helpers.sh)
+# that define shared variables such as `maestro_cli`. Follow those sources so
+# ShellCheck resolves the definitions instead of reporting SC1091/SC2154.
+external-sources=true
