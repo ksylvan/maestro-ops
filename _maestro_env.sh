@@ -30,9 +30,18 @@
 #      See .env.example.
 #   2. If MAESTRO_CLI_JS is set (typically from .env or the environment), it
 #      wins, and MAESTRO_USER_DATA is honored as given.
-#   3. Otherwise, if the installed Maestro.app CLI exists, use it and leave
-#      MAESTRO_USER_DATA untouched — the app manages its own data location.
+#   3. Otherwise, if the installed app's CLI exists, use it.
 #   4. Otherwise fall back to the dev preview worktree CLI + maestro-dev data.
+#
+# MAESTRO_USER_DATA is always exported afterwards. When unset it defaults to
+# the app's data dir (maestro, or maestro-dev for the dev fallback) under the
+# platform data root. Linux needs this explicitly: the CLI's own default is
+# ~/.config/Maestro (capital M) while the app writes ~/.config/maestro, so
+# without the variable the CLI sees no agents on a case-sensitive filesystem.
+#
+#             installed CLI                                        data root
+#   macOS     /Applications/Maestro.app/Contents/Resources/...     ~/Library/Application Support
+#   Linux     /opt/Maestro/resources/maestro-cli.js (deb/rpm)      ${XDG_CONFIG_HOME:-~/.config}
 
 # Directory holding this helper (and any sibling .env).
 _maestro_env_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -112,20 +121,31 @@ maestro_autorun_dir() {
     echo "${MAESTRO_REPOS_DIR}/worktrees/autorun/${1}/${2}"
 }
 
-_maestro_installed_cli="/Applications/Maestro.app/Contents/Resources/maestro-cli.js"
+case "$(uname -s)" in
+    Darwin)
+        _maestro_installed_cli="/Applications/Maestro.app/Contents/Resources/maestro-cli.js"
+        _maestro_data_root="${HOME}/Library/Application Support"
+        ;;
+    *)
+        _maestro_installed_cli="/opt/Maestro/resources/maestro-cli.js"
+        _maestro_data_root="${XDG_CONFIG_HOME:-${HOME}/.config}"
+        ;;
+esac
 
 # maestro_cli is consumed by the script that sources this helper.
 # shellcheck disable=SC2034
 if [[ -n "${MAESTRO_CLI_JS:-}" ]]; then
     # 2. Explicit override (env or .env) wins; honor MAESTRO_USER_DATA as given.
     maestro_cli="${MAESTRO_CLI_JS}"
+    export MAESTRO_USER_DATA="${MAESTRO_USER_DATA:-${_maestro_data_root}/maestro}"
 elif [[ -f "${_maestro_installed_cli}" ]]; then
-    # 3. Installed app: use its CLI, do NOT override MAESTRO_USER_DATA.
+    # 3. Installed app: use its CLI and its data dir.
     maestro_cli="${_maestro_installed_cli}"
+    export MAESTRO_USER_DATA="${MAESTRO_USER_DATA:-${_maestro_data_root}/maestro}"
 else
     # 4. Dev fallback: preview worktree CLI + maestro-dev data dir.
-    maestro_cli="${HOME}/src/worktrees/Maestro/preview/dist/cli/maestro-cli.js"
-    export MAESTRO_USER_DATA="${MAESTRO_USER_DATA:-${HOME}/Library/Application Support/maestro-dev}"
+    maestro_cli="${MAESTRO_REPOS_DIR}/worktrees/Maestro/preview/dist/cli/maestro-cli.js"
+    export MAESTRO_USER_DATA="${MAESTRO_USER_DATA:-${_maestro_data_root}/maestro-dev}"
 fi
 
-unset _maestro_env_dir _maestro_installed_cli
+unset _maestro_env_dir _maestro_installed_cli _maestro_data_root

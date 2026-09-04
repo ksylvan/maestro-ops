@@ -34,7 +34,7 @@ Options:
   -h, --help        Show this help message and exit
 
 Env overrides (see _maestro_env.sh and .env.example):
-    MAESTRO_USER_DATA   Maestro data dir
+    MAESTRO_USER_DATA   Maestro data dir (default: the app's dir for this platform)
     MAESTRO_CLI_JS      Path to maestro-cli.js (MAESTRO_JS still honored)
 
 Examples:
@@ -105,10 +105,8 @@ _script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=_maestro_env.sh
 source "${_script_dir}/_maestro_env.sh" || die "Cannot source _maestro_env.sh"
 
-# This watcher reads the history file straight off disk, so it always needs a
-# user-data dir. When the installed app is used the helper leaves
-# MAESTRO_USER_DATA unset, so fall back to the app's default location.
-export MAESTRO_USER_DATA="${MAESTRO_USER_DATA:-$HOME/Library/Application Support/maestro}"
+# The helper always exports MAESTRO_USER_DATA; this watcher reads the history
+# file straight off disk from there.
 cli=(node "$maestro_cli")
 
 hist="$MAESTRO_USER_DATA/history/${agent}.json"
@@ -342,7 +340,11 @@ while true; do
     echo "[$(ts)] DONE — no new iteration for ${grace}s"
     echo "          iterations observed : $iterations"
     echo "          tasks completed     : $delta (total now $end_tasks)"
+    # In-app toast needs the desktop app running; otherwise fall back to a
+    # desktop notification where one exists (notify-send on Linux).
     "${cli[@]}" notify toast "Auto Run complete: $name" \
-        "$iterations iteration(s), $delta task(s) done — idle ${grace}s" 2>/dev/null || true
+        "$iterations iteration(s), $delta task(s) done — idle ${grace}s" 2>/dev/null \
+        || { command -v notify-send >/dev/null && notify-send "Auto Run complete: $name" \
+            "$iterations iteration(s), $delta task(s) done — idle ${grace}s"; } || true
     break
 done

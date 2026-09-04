@@ -23,7 +23,9 @@ The `maestro_*` scripts set up worktrees and agents on demand:
 - [`gh`](https://cli.github.com/), the GitHub CLI, authenticated
 - [`jq`](https://stedolan.github.io/jq/)
 - [`node`](https://nodejs.org/), to run the Maestro CLI
-- `git`
+- `git`, `perl`, and `python3` (all present on macOS and Omarchy)
+- Optional on Linux: `notify-send`, for the watcher's desktop notification
+  fallback
 - The [Maestro](https://github.com/RunMaestro/Maestro) CLI, either the
   installed app or a checked-out preview build (see
   [Maestro CLI resolution](#maestro-cli-resolution) below)
@@ -79,13 +81,37 @@ Resolution order:
    environment), this path wins, and `MAESTRO_USER_DATA` is honored as
    given. `maestro_watch.sh` also honors the legacy `MAESTRO_JS` as an
    alias for `MAESTRO_CLI_JS`.
-3. **Installed app** — otherwise, if
-   `/Applications/Maestro.app/Contents/Resources/maestro-cli.js` exists,
-   the scripts use that CLI and leave `MAESTRO_USER_DATA` unset, so the
-   app uses its own data directory.
+3. **Installed app** — otherwise, if the installed app's CLI exists (see
+   the table below), the scripts use it.
 4. **Dev fallback** — otherwise the scripts fall back to
-   `~/src/worktrees/Maestro/preview/dist/cli/maestro-cli.js` with
-   `MAESTRO_USER_DATA` pointed at `~/Library/Application Support/maestro-dev`.
+   `${MAESTRO_REPOS_DIR}/worktrees/Maestro/preview/dist/cli/maestro-cli.js`
+   (run `npm run build:cli` in that worktree to produce it) and the
+   `maestro-dev` data directory.
+
+After resolution, `MAESTRO_USER_DATA` is always exported. When unset, it
+defaults to the app's data directory for the platform (`maestro-dev` for the
+dev fallback). The paths, per platform:
+
+| | macOS | Linux |
+| --- | --- | --- |
+| Installed CLI | `/Applications/Maestro.app/Contents/Resources/maestro-cli.js` | `/opt/Maestro/resources/maestro-cli.js` (deb/rpm) |
+| Data root | `~/Library/Application Support` | `${XDG_CONFIG_HOME:-~/.config}` |
+| App data dir | `<root>/maestro` | `<root>/maestro` |
+| Dev data dir | `<root>/maestro-dev` | `<root>/maestro-dev` |
+
+#### Linux notes
+
+- The Maestro CLI's own default data directory on Linux is
+  `~/.config/Maestro` (capital M), while the app writes `~/.config/maestro`.
+  On a case-sensitive filesystem that means `list agents` and `show agent`
+  see nothing unless `MAESTRO_USER_DATA` is set, which is why the scripts
+  always export it.
+- The deb and rpm packages install to `/opt/Maestro`. For the AppImage there
+  is no stable path: run it with `--appimage-extract` and point
+  `MAESTRO_CLI_JS` at `squashfs-root/resources/maestro-cli.js`.
+- `maestro_watch.sh` reports completion with an in-app toast, which needs
+  the Maestro app running. When the toast fails and `notify-send` exists,
+  it sends a desktop notification instead.
 
 #### Running against a checked-out rc branch (developers)
 
@@ -102,7 +128,8 @@ The two variables that matter for a dev build:
 
 ```sh
 export MAESTRO_CLI_JS="$HOME/src/worktrees/Maestro/preview/dist/cli/maestro-cli.js"
-export MAESTRO_USER_DATA="$HOME/Library/Application Support/maestro-dev"
+export MAESTRO_USER_DATA="$HOME/.config/maestro-dev"                      # Linux
+# export MAESTRO_USER_DATA="$HOME/Library/Application Support/maestro-dev"  # macOS
 ```
 
 `.env.example` documents every other variable as a commented default; the
@@ -326,16 +353,16 @@ stayed gone for the full grace window with no new iteration starting.
 **What it does:**
 
 1. Resolves the Maestro CLI and data directory through
-   [`_maestro_env.sh`](#maestro-cli-resolution). Because it reads the
-   agent history file directly off disk, it defaults `MAESTRO_USER_DATA`
-   to the installed app's location when the helper leaves it unset.
+   [`_maestro_env.sh`](#maestro-cli-resolution), and reads the agent
+   history file directly off disk from `MAESTRO_USER_DATA`.
 2. Polls every `poll_seconds` for the agent's process, logging each new
    iteration as it starts.
 3. When the process disappears, opens a grace window of `grace_seconds`,
    watching for the next iteration to start.
 4. Once the grace window passes with no new iteration, declares the run
    done, reports the iteration count and the number of completed tasks,
-   and fires a desktop toast notification.
+   and fires an in-app toast (or, when that fails on Linux, a
+   `notify-send` desktop notification).
 
 The watcher runs until the agent finishes, or until you stop it with
 `Ctrl-C`.
@@ -396,8 +423,10 @@ check, so you can confirm your setup before running the other scripts.
    resolved `maestro_cli` path.
 2. A worked example of the directory model: the base, worktree, and
    autorun paths for a sample repository, worktree name, and agent type.
-3. A check for `git`, `gh`, `jq`, and `node`, plus the current `gh`
-   authentication status.
+3. Whether the resolved CLI file and `MAESTRO_USER_DATA` directory exist,
+   and whether the Maestro app appears to be running.
+4. A check for `git`, `gh`, `jq`, `node`, `perl`, and `python3` (and
+   `notify-send` on Linux), plus the current `gh` authentication status.
 
 `maestro_doctor.sh` always exits `0`. It is a read-only diagnostic, not a
 hard prerequisite check, so a missing tool is reported, not treated as a

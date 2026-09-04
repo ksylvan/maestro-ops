@@ -49,9 +49,25 @@ echo "MAESTRO_PLAYBOOKS_GH_REPO: $MAESTRO_PLAYBOOKS_GH_REPO"
 echo "MAESTRO_PLAYBOOKS_DIR:     $MAESTRO_PLAYBOOKS_DIR"
 echo "MAESTRO_DEFAULT_AGENT_TYPE: $MAESTRO_DEFAULT_AGENT_TYPE"
 echo ""
+echo "Platform:             $(uname -s)"
 echo "Resolved maestro_cli: $maestro_cli"
-if [[ -n "${MAESTRO_USER_DATA:-}" ]]; then
-    echo "MAESTRO_USER_DATA:    $MAESTRO_USER_DATA"
+if [[ -f "$maestro_cli" ]]; then
+    echo "                      OK (file exists)"
+else
+    echo "                      MISSING"
+    echo "  Dev build:     run 'npm run build:cli' in the Maestro worktree."
+    echo "  Installed app: macOS Maestro.app, or Linux deb/rpm (lands in /opt/Maestro)."
+    echo "                 AppImage: run --appimage-extract and set MAESTRO_CLI_JS."
+fi
+echo "MAESTRO_USER_DATA:    $MAESTRO_USER_DATA"
+if [[ -d "$MAESTRO_USER_DATA" ]]; then
+    if [[ -f "$MAESTRO_USER_DATA/cli-server.json" ]]; then
+        echo "                      OK (dir exists; Maestro app appears to be running)"
+    else
+        echo "                      OK (dir exists; Maestro app not running: no cli-server.json)"
+    fi
+else
+    echo "                      MISSING (start the Maestro app once to create it)"
 fi
 echo ""
 
@@ -87,7 +103,7 @@ check_tool() {
     local tool="$1"
     if command -v "$tool" &>/dev/null; then
         local version
-        version=$("$tool" --version 2>&1 | head -n1)
+        version=$("$tool" --version 2>&1 | grep -m1 .)
         echo "$tool:  OK ($version)"
         return 0
     else
@@ -100,6 +116,11 @@ check_tool "git"
 check_tool "gh"
 check_tool "jq"
 check_tool "node"
+check_tool "perl"
+check_tool "python3"
+if [[ "$(uname -s)" != "Darwin" ]]; then
+    check_tool "notify-send" || echo "  (optional: maestro_watch.sh desktop notification fallback)"
+fi
 echo ""
 
 # Best-effort GitHub authentication status
